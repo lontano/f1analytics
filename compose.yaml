@@ -1,0 +1,91 @@
+# Port plan (dev.stack.bootstrap). Published ports bind 127.0.0.1.
+# F1A_* overrides stay off .env so API_PORT and UI_PORT cannot move them.
+x-port-reference:
+  ui: 18701
+  schedule: 4010
+  realtime: 4000
+  timescaledb: 18732
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: f1analysis
+    ports:
+      - "127.0.0.1:${F1A_TIMESCALE_PORT:-18732}:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d f1analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./timing
+      dockerfile: dockerfile
+      target: api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${F1A_SCHEDULE_PORT:-4010}:80"
+    environment:
+      RUST_LOG: api=debug
+      ADDRESS: 0.0.0.0:80
+      ORIGIN: "*"
+
+  realtime:
+    build:
+      context: ./timing
+      dockerfile: dockerfile
+      target: realtime
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${F1A_REALTIME_PORT:-4000}:80"
+    volumes:
+      - realtime_data:/data
+    environment:
+      RUST_LOG: realtime=debug
+      ADDRESS: 0.0.0.0:80
+      ORIGIN: "*"
+      DATA_DIR: /data
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/f1analysis
+
+  web:
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+      realtime:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${F1A_UI_PORT:-18701}:80"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /data
+      TIMING_LIVE_UPSTREAM: http://realtime:80
+      TIMING_SCHEDULE_UPSTREAM: http://api:80
+    volumes:
+      - shell_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  timescaledb_data:
+  realtime_data:
+  shell_data:

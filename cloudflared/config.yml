@@ -1,0 +1,7 @@
+tunnel: 3e2d9474-65f7-484f-8197-8b7590b39df9
+credentials-file: C:\Users\ggeel\.cloudflared\3e2d9474-65f7-484f-8197-8b7590b39df9.json
+
+ingress:
+  - hostname: f1analytics.gelosoft.app
+    service: http://127.0.0.1:18701
+  - service: http_status:404

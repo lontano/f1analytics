@@ -1,0 +1,16 @@
+[package]
+name = "storage"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1.0.98"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono", "uuid", "json", "migrate"] }
+uuid = { version = "1.17.0", features = ["v4", "serde"] }

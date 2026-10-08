@@ -1,0 +1,9 @@
+[workspace]
+members = ["shared", "realtime", "api", "simulator", "signalr", "storage"]
+default-members = ["realtime", "api"]
+resolver = "2"
+
+[workspace.dependencies]
+shared = { path = "shared" }
+signalr = { path = "signalr" }
+storage = { path = "storage" }
